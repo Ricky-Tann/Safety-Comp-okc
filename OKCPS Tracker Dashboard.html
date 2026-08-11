@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>OKCPS Corrective Action Dashboard</title>
+<style>
+:root{
+  --navy:#1a2f4e;--steel:#2c5282;--mid:#3a6fa8;--ice:#ebf2fa;
+  --pale:#f5f8fc;--w:#fff;--ink:#1a202c;--gray:#64748b;
+  --light:#94a3b8;--bord:#cbd5e1;
+  --red:#c53030;--redbg:#fff5f5;--rb:#feb2b2;
+  --amber:#b7791f;--ambg:#fffbeb;--ab:#f6e05e;
+  --green:#276749;--gbg:#f0fff4;--gb:#9ae6b4;
+  --r:10px;--sh:0 1px 4px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--pale);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.topbar{background:var(--navy);padding:14px 15px 12px;box-shadow:0 2px 12px rgba(0,0,0,.22);}
+.brand{color:#fff;font-size:14px;font-weight:800;letter-spacing:.3px;}
+.brand-sub{color:rgba(255,255,255,.62);font-size:11px;margin-top:2px;}
+.content{padding:12px 12px 40px;max-width:640px;margin:0 auto;}
+.card{background:var(--w);border:1px solid var(--bord);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--sh);}
+.card-ttl{font-size:10.5px;font-weight:800;color:var(--steel);text-transform:uppercase;letter-spacing:.6px;margin-bottom:11px;}
+.fl{display:block;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.fi{width:100%;border:1px solid var(--bord);border-radius:7px;padding:9px 10px;font-size:14px;font-family:inherit;background:var(--pale);color:var(--ink);}
+.fi:focus{outline:none;border-color:var(--mid);}
+.fsel{width:100%;border:1px solid var(--bord);border-radius:7px;padding:9px 10px;font-size:14px;font-family:inherit;background:var(--pale);color:var(--ink);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+/* stat boxes */
+.stat-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.stat-box{flex:1;min-width:70px;border-radius:10px;padding:12px 8px;text-align:center;border:1px solid;}
+.stat-num{font-size:28px;font-weight:900;line-height:1;}
+.stat-lbl{font-size:10px;font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.4px;}
+/* filter chips */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{flex:0 0 auto;padding:7px 14px;border-radius:20px;border:1.5px solid var(--bord);background:#fafbfc;color:var(--gray);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.chip.sel{border-color:var(--navy);background:var(--navy);color:#fff;}
+/* item cards */
+.item{border-radius:10px;margin-bottom:10px;border:1px solid;border-left:4px solid;overflow:hidden;}
+.item-hdr{padding:12px 13px 8px;}
+.item-status{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.item-loc{font-size:11px;font-weight:700;color:var(--gray);margin-bottom:5px;}
+.item-txt{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4;}
+.item-note{font-size:12.5px;color:#555;margin-top:5px;font-style:italic;}
+.item-meta{font-size:10px;color:var(--gray);margin-top:7px;}
+.prog-wrap{margin-top:9px;}
+.prog-bar{height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s;}
+.prog-lbl{font-size:10px;font-weight:700;margin-top:3px;}
+.res-block{margin:4px 13px 0;padding:8px 10px;background:var(--gbg);border-radius:7px;border:1px solid var(--gb);}
+.res-lbl{font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.res-txt{font-size:13px;color:var(--ink);}
+.res-meta{font-size:11px;color:var(--gray);margin-top:3px;}
+.photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.ph{width:54px;height:54px;border-radius:7px;object-fit:cover;border:1px solid var(--bord);}
+/* action buttons */
+.act-row{display:flex;gap:6px;padding:0 13px 12px;}
+.ab{flex:1;padding:9px 4px;border-radius:8px;border:1.5px solid var(--bord);background:#fafbfc;color:var(--gray);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
+.ab.urg{border-color:var(--red);background:var(--redbg);color:var(--red);}
+.ab.cls{border:none;background:var(--green);color:#fff;flex:2;font-size:13px;}
+.ab.del{color:var(--red);}
+.ab.reopen{color:var(--gray);font-size:12.5px;}
+/* close modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:640px;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+.modal-ttl{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:14px;}
+.nta{width:100%;min-height:80px;border:1.5px solid var(--bord);border-radius:8px;padding:10px 11px;font-size:14px;font-family:inherit;resize:vertical;background:var(--pale);color:var(--ink);line-height:1.55;}
+.nta:focus{outline:none;border-color:var(--mid);}
+.mbtn-row{display:flex;gap:8px;margin-top:12px;}
+.mbtn-can{flex:1;padding:13px;border-radius:9px;border:1.5px solid var(--bord);background:#fff;color:var(--gray);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+.mbtn-ok{flex:2;padding:13px;border-radius:9px;border:none;background:var(--green);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+/* trend section */
+.trend-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bord);}
+.trend-row:last-child{border-bottom:none;}
+.trend-bar-wrap{flex:1;height:8px;background:var(--bord);border-radius:4px;overflow:hidden;}
+.trend-bar-fill{height:100%;border-radius:4px;background:var(--red);}
+.trend-lbl{font-size:13px;font-weight:600;color:var(--ink);min-width:0;flex:2;}
+.trend-cnt{font-size:12px;font-weight:700;color:var(--gray);white-space:nowrap;}
+/* import area */
+.import-area{border:2px dashed var(--steel);border-radius:var(--r);padding:20px;text-align:center;color:var(--steel);cursor:pointer;margin-bottom:12px;}
+.import-area:hover{background:var(--ice);}
+.empty{text-align:center;padding:36px 20px;color:var(--gray);}
+.eico{font-size:36px;margin-bottom:8px;}
+.ettl{font-size:14px;font-weight:700;margin-bottom:5px;}
+.esub{font-size:13px;line-height:1.5;}
+.eb{width:100%;padding:14px;border-radius:10px;border:none;background:var(--navy);color:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px;font-family:inherit;}
+.eb.out{background:var(--w);color:var(--navy);border:1.5px solid var(--navy);padding:12px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;}
+.toast.show{opacity:1;}
+.frow{margin-bottom:9px;}
+.mt8{margin-top:8px;}
+/* tabs */
+.tab-bar{display:flex;gap:0;background:var(--ice);border-radius:10px;padding:3px;margin-bottom:14px;}
+.dtab{flex:1;padding:9px;border-radius:8px;border:none;background:transparent;color:var(--gray);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:all .12s;}
+.dtab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+
+#confirm-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center;}
+#confirm-modal.open{display:flex;}
+#confirm-modal .cm-box{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:640px;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+#confirm-modal .cm-title{font-size:15px;font-weight:800;color:#1a2f4e;margin-bottom:6px;}
+#confirm-modal .cm-msg{font-size:14px;color:#64748b;margin-bottom:18px;line-height:1.5;}
+#confirm-modal .cm-btns{display:flex;gap:8px;}
+#confirm-modal .cm-cancel{flex:1;padding:13px;border-radius:9px;border:1.5px solid #cbd5e1;background:#fff;color:#64748b;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+#confirm-modal .cm-ok{flex:1;padding:13px;border-radius:9px;border:none;background:#c53030;color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
+#confirm-modal .cm-ok.green{background:#276749;}
+
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">OKCPS Corrective Action Dashboard</div>
+  <div class="brand-sub">District-wide tracking across all campuses</div>
+</div>
+<div class="content" id="main-content"></div>
+<div class="modal-bg" id="close-modal">
+  <div class="modal">
+    <div class="modal-ttl">Close Corrective Action</div>
+    <div class="frow"><label class="fl">Resolution — What was done to fix it</label>
+      <textarea class="nta" id="modal-res" placeholder="Describe corrective action taken…"></textarea></div>
+    <div class="frow"><label class="fl">Closed By</label>
+      <input class="fi" type="text" id="modal-by" placeholder="Name"></div>
+    <div class="mbtn-row">
+      <button class="mbtn-can" onclick="cancelClose()">Cancel</button>
+      <button class="mbtn-ok"  onclick="confirmClose()">Confirm Closed ✓</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal">
+  <div class="cm-box">
+    <div class="cm-title" id="cm-title">Confirm</div>
+    <div class="cm-msg" id="cm-msg"></div>
+    <div class="cm-btns">
+      <button class="cm-cancel" id="cm-cancel">Cancel</button>
+      <button class="cm-ok" id="cm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TRACKER_STORE = "okcps_tracker_v1"; // SAME key as inspection form
+const WARN_DAYS = 14;
+
+let TRACKER = { items: [] };
+function loadTracker() {
+  try { const r = localStorage.getItem(TRACKER_STORE); if (r) TRACKER = JSON.parse(r); if (!TRACKER.items) TRACKER.items = []; } catch(e) {}
+}
+function saveTracker() {
+  try { localStorage.setItem(TRACKER_STORE, JSON.stringify(TRACKER)); } catch(e) {}
+}
+
+function daysSince(iso) { return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); }
+function itemStatus(i) {
+  if (i.status === "closed") return "closed";
+  if (i.isUrgent) return "urgent";
+  if (daysSince(i.loggedDate) > WARN_DAYS) return "overdue";
+  return "open";
+}
+function statusMeta(st, days) {
+  switch(st) {
+    case "urgent":  return { label:"🔴 URGENT — Immediate",     col:"#c53030", bg:"#fff5f5", brd:"#feb2b2" };
+    case "overdue": return { label:`🔴 OVERDUE · Day ${days}`,  col:"#c53030", bg:"#fff5f5", brd:"#feb2b2" };
+    case "open":    return { label:`🟡 Open · Day ${days}/${WARN_DAYS}`, col:"#92400e", bg:"#fffbeb", brd:"#f6e05e" };
+    case "closed":  return { label:"✅ Closed",                  col:"#276749", bg:"#f0fff4", brd:"#9ae6b4" };
+  }
+}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let activeView = "dashboard"; // dashboard | items | trends | settings
+let filterStatus   = "All";
+let filterBuilding = "All";
+let filterSection  = "All";
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const c = document.getElementById("main-content");
+  const urgent  = TRACKER.items.filter(i => itemStatus(i) === "urgent");
+  const overdue = TRACKER.items.filter(i => itemStatus(i) === "overdue");
+  const open    = TRACKER.items.filter(i => itemStatus(i) === "open");
+  const closed  = TRACKER.items.filter(i => itemStatus(i) === "closed");
+
+  let html = `
+  <!-- view tabs -->
+  <div class="tab-bar">
+    ${[["dashboard","📊 Dashboard"],["items","📋 All Items"],["trends","📈 Trends"],["records","📁 Records"],["settings","⚙️ Manage"]].map(([v,l])=>
+      `<button class="dtab${activeView===v?" active":""}" onclick="setView('${v}')">${l}</button>`).join("")}
+  </div>`;
+
+  if (activeView === "dashboard") html += renderDashboard(urgent, overdue, open, closed);
+  else if (activeView === "items") html += renderItems();
+  else if (activeView === "trends") html += renderTrends();
+  else if (activeView === "records") html += renderArchiveTab();
+  else if (activeView === "settings") html += renderSettings();
+
+  c.innerHTML = html;
+}
+
+function renderDashboard(urgent, overdue, open, closed) {
+  const flagged = urgent.length + overdue.length;
+  let html = `
+  <!-- stat boxes -->
+  <div class="stat-row">
+    <div class="stat-box" style="background:#fff5f5;border-color:#feb2b2;" onclick="setViewFilter('items','Flagged')">
+      <div class="stat-num" style="color:#c53030;">${flagged}</div>
+      <div class="stat-lbl" style="color:#c53030;">Flagged</div>
+    </div>
+    <div class="stat-box" style="background:#fffbeb;border-color:#f6e05e;" onclick="setViewFilter('items','Open')">
+      <div class="stat-num" style="color:#92400e;">${open.length}</div>
+      <div class="stat-lbl" style="color:#92400e;">Open</div>
+    </div>
+    <div class="stat-box" style="background:#f0fff4;border-color:#9ae6b4;" onclick="setViewFilter('items','Closed')">
+      <div class="stat-num" style="color:#276749;">${closed.length}</div>
+      <div class="stat-lbl" style="color:#276749;">Closed</div>
+    </div>
+    <div class="stat-box" style="background:#ebf2fa;border-color:#90cdf4;">
+      <div class="stat-num" style="color:#1a2f4e;">${TRACKER.items.length}</div>
+      <div class="stat-lbl" style="color:#1a2f4e;">Total</div>
+    </div>
+  </div>`;
+
+  // Flagged items
+  if (flagged > 0) {
+    html += `<div class="card"><div class="card-ttl" style="color:#c53030;">⚠️ Needs Immediate Attention (${flagged})</div>`;
+    [...urgent, ...overdue].slice(0, 5).forEach(item => html += itemCardHTML(item, true));
+    if (flagged > 5) html += `<div style="text-align:center;padding:8px 0;font-size:13px;color:var(--gray);font-weight:700;cursor:pointer;" onclick="setViewFilter('items','Flagged')">View all ${flagged} flagged items ›</div>`;
+    html += `</div>`;
+  }
+
+  // Open items approaching deadline
+  const approaching = open.filter(i => daysSince(i.loggedDate) >= WARN_DAYS - 3);
+  if (approaching.length) {
+    html += `<div class="card"><div class="card-ttl" style="color:#92400e;">🟡 Flagging Soon — Within 3 Days (${approaching.length})</div>`;
+    approaching.forEach(item => html += itemCardHTML(item, true));
+    html += `</div>`;
+  }
+
+  // By building summary
+  const buildings = [...new Set(TRACKER.items.map(i => i.building))].filter(Boolean).sort();
+  if (buildings.length > 1) {
+    html += `<div class="card"><div class="card-ttl">By Campus</div>`;
+    buildings.forEach(b => {
+      const bItems = TRACKER.items.filter(i => i.building === b);
+      const bFlagged = bItems.filter(i => ["urgent","overdue"].includes(itemStatus(i))).length;
+      const bOpen = bItems.filter(i => itemStatus(i) === "open").length;
+      const bClosed = bItems.filter(i => itemStatus(i) === "closed").length;
+      html += `<div class="trend-row" onclick="setViewFilter('items','All','${b.replace(/'/g,"\'")}','All')" style="cursor:pointer;">
+        <div class="trend-lbl">${b}</div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          ${bFlagged>0?`<span style="font-size:11px;font-weight:800;color:#c53030;background:#fff5f5;border-radius:4px;padding:2px 6px;">${bFlagged} !</span>`:""}
+          ${bOpen>0?`<span style="font-size:11px;font-weight:700;color:#92400e;background:#fffbeb;border-radius:4px;padding:2px 6px;">${bOpen} open</span>`:""}
+          ${bClosed>0?`<span style="font-size:11px;font-weight:700;color:#276749;background:#f0fff4;border-radius:4px;padding:2px 6px;">${bClosed} ✓</span>`:""}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!TRACKER.items.length) {
+    html += `<div class="empty"><div class="eico">📋</div>
+      <div class="ettl">No corrective actions yet</div>
+      <div class="esub">Open the OKCPS Inspection Form, complete an inspection, then tap "Push Fails to Tracker" to populate this dashboard. Both files share the same data on this device.</div>
+    </div>`;
+  }
+  return html;
+}
+
+function renderItems() {
+  const buildings = ["All", ...new Set(TRACKER.items.map(i=>i.building)).values()].filter(Boolean).sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
+  const sections  = ["All", ...new Set(TRACKER.items.map(i=>i.section)).values()].filter(Boolean).sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
+
+  let items = TRACKER.items.slice().sort((a,b)=>{
+    const order = {urgent:0,overdue:1,open:2,closed:3};
+    return (order[itemStatus(a)]||2) - (order[itemStatus(b)]||2);
+  });
+  if (filterStatus !== "All") {
+    if (filterStatus === "Flagged") items = items.filter(i => ["urgent","overdue"].includes(itemStatus(i)));
+    else items = items.filter(i => itemStatus(i) === filterStatus.toLowerCase());
+  }
+  if (filterBuilding !== "All") items = items.filter(i => i.building === filterBuilding);
+  if (filterSection  !== "All") items = items.filter(i => i.section  === filterSection);
+
+  let html = `
+  <div class="chips">
+    ${["All","Flagged","Open","Closed"].map(f=>`<button class="chip${filterStatus===f?" sel":""}" onclick="setStatusFilter('${f}')">${f}</button>`).join("")}
+  </div>
+  <div class="frow"><label class="fl">Filter by Campus</label>
+    <select class="fsel" onchange="filterBuilding=this.value;render()">
+      ${buildings.map(b=>`<option value="${b}"${filterBuilding===b?" selected":""}>${b}</option>`).join("")}
+    </select>
+  </div>
+  <div class="frow"><label class="fl">Filter by Section</label>
+    <select class="fsel" onchange="filterSection=this.value;render()">
+      ${sections.map(s=>`<option value="${s}"${filterSection===s?" selected":""}>${s}</option>`).join("")}
+    </select>
+  </div>`;
+
+  if (!items.length) {
+    html += `<div class="empty"><div class="eico">🔍</div><div class="ettl">No items match this filter</div></div>`;
+  } else {
+    items.forEach(item => { html += itemCardHTML(item, false); });
+  }
+  return html;
+}
+
+function renderTrends() {
+  if (TRACKER.items.length < 2) {
+    return `<div class="empty"><div class="eico">📈</div><div class="ettl">Not enough data yet</div><div class="esub">Complete inspections across multiple campuses to see pattern trends here.</div></div>`;
+  }
+  const allItems = TRACKER.items;
+  // Most common failures by item text
+  const itemCounts = {};
+  allItems.filter(i=>i.status!=="closed").forEach(i=>{
+    itemCounts[i.itemText] = (itemCounts[i.itemText]||0)+1;
+  });
+  const topItems = Object.entries(itemCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxCount = topItems[0]?.[1] || 1;
+
+  // Most common failures by section
+  const secCounts = {};
+  allItems.filter(i=>i.status!=="closed").forEach(i=>{
+    secCounts[i.sectionIcon+" "+i.section] = (secCounts[i.sectionIcon+" "+i.section]||0)+1;
+  });
+  const topSecs = Object.entries(secCounts).sort((a,b)=>b[1]-a[1]);
+  const maxSec = topSecs[0]?.[1] || 1;
+
+  // Buildings with most open issues
+  const bldCounts = {};
+  allItems.filter(i=>i.status!=="closed").forEach(i=>{
+    bldCounts[i.building] = (bldCounts[i.building]||0)+1;
+  });
+  const topBlds = Object.entries(bldCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxBld = topBlds[0]?.[1] || 1;
+
+  // Avg days open for closed items
+  const closedTimes = allItems.filter(i=>i.status==="closed"&&i.closedDate).map(i=>{
+    return Math.floor((new Date(i.closedDate)-new Date(i.loggedDate))/86400000);
+  });
+  const avgClose = closedTimes.length ? Math.round(closedTimes.reduce((a,b)=>a+b,0)/closedTimes.length) : null;
+
+  let html = "";
+  if (avgClose !== null) {
+    html += `<div class="card" style="text-align:center;padding:16px;">
+      <div style="font-size:36px;font-weight:900;color:var(--navy);">${avgClose}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--gray);margin-top:4px;">Avg. Days to Close (${closedTimes.length} closed items)</div>
+    </div>`;
+  }
+
+  if (topItems.length) {
+    html += `<div class="card"><div class="card-ttl">Most Common Open Failures</div>`;
+    topItems.forEach(([txt, cnt]) => {
+      html += `<div class="trend-row">
+        <div class="trend-lbl">${txt}</div>
+        <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:${Math.round(cnt/maxCount*100)}%"></div></div>
+        <div class="trend-cnt">${cnt} campus${cnt!==1?"es":""}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (topSecs.length) {
+    html += `<div class="card"><div class="card-ttl">Open Failures by Section</div>`;
+    topSecs.forEach(([sec, cnt]) => {
+      html += `<div class="trend-row">
+        <div class="trend-lbl">${sec}</div>
+        <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:${Math.round(cnt/maxSec*100)}%;background:var(--amber)"></div></div>
+        <div class="trend-cnt">${cnt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (topBlds.length) {
+    html += `<div class="card"><div class="card-ttl">Campuses with Most Open Items</div>`;
+    topBlds.forEach(([b, cnt]) => {
+      html += `<div class="trend-row">
+        <div class="trend-lbl">${b}</div>
+        <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:${Math.round(cnt/maxBld*100)}%;background:var(--steel)"></div></div>
+        <div class="trend-cnt">${cnt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+function renderSettings() {
+  const total  = TRACKER.items.length;
+  const closed = TRACKER.items.filter(i=>i.status==="closed").length;
+  return `<div class="card">
+    <div class="card-ttl">About This Dashboard</div>
+    <div style="font-size:13px;color:var(--gray);line-height:1.6;">
+      This dashboard reads from the same data as the OKCPS Safety Inspection Form on this device.
+      Both files share a key called <code style="font-size:11px;background:#f1f5f9;padding:1px 5px;border-radius:4px;">okcps_tracker_v1</code> in your phone's local storage.
+      <br><br>Total items tracked: <strong>${total}</strong><br>
+      Closed items: <strong>${closed}</strong><br>
+      Open / flagged: <strong>${total - closed}</strong>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">Export Full Report</div>
+    <button class="eb" onclick="exportAll()">📤 Share / Export All Items</button>
+    <button class="eb out mt8" onclick="exportCSV()">📊 Export as CSV</button>
+  </div>
+  <div class="card" style="border-color:#feb2b2;">
+    <div class="card-ttl" style="color:var(--red);">Danger Zone</div>
+    <button class="eb" style="background:var(--red);" onclick="clearClosed()">Remove All Closed Items</button>
+    <button class="eb out mt8" style="border-color:var(--red);color:var(--red);" onclick="clearAll()">Clear ALL Tracker Data</button>
+  </div>`;
+}
+
+// ── ITEM CARD HTML ────────────────────────────────────────────────────────────
+function itemCardHTML(item, compact) {
+  const st   = itemStatus(item);
+  const days = daysSince(item.loggedDate);
+  const sm   = statusMeta(st, days);
+  const prog = st==="open" ? Math.min(days/WARN_DAYS,1) : st==="overdue"||st==="urgent" ? 1 : 0;
+  const logDate = new Date(item.loggedDate).toLocaleDateString();
+
+  return `<div class="item" style="background:${sm.bg};border-color:${sm.brd};border-left-color:${sm.col};">
+    <div class="item-hdr">
+      <div class="item-status" style="color:${sm.col};">${sm.label}</div>
+      <div class="item-loc">${item.sectionIcon} ${item.section} · ${item.building}</div>
+      <div class="item-txt">${item.itemText}</div>
+      ${item.note&&!compact?`<div class="item-note">${item.note}</div>`:""}
+      ${item.photos&&item.photos.length&&!compact?`<div class="photos">${item.photos.map(p=>`<img src="${p}" class="ph">`).join("")}</div>`:""}
+      ${st==="open"?`<div class="prog-wrap">
+        <div class="prog-bar"><div class="prog-fill" style="width:${Math.round(prog*100)}%;background:${prog>0.7?"#c53030":"#d69e2e"};"></div></div>
+        <div class="prog-lbl" style="color:${sm.col};">${days} of ${WARN_DAYS} days</div>
+      </div>`:""}
+      ${item.status==="closed"?`<div class="res-block">
+        <div class="res-lbl">Resolution</div>
+        ${item.resolution?`<div class="res-txt">${item.resolution}</div>`:""}
+        <div class="res-meta">Closed by ${item.closedBy||"—"} · ${item.closedDate?new Date(item.closedDate).toLocaleDateString():"—"}</div>
+      </div>`:""}
+      <div class="item-meta">Logged ${logDate}${item.loggedBy?" by "+item.loggedBy:""}</div>
+    </div>
+    ${item.status!=="closed"?`<div class="act-row">
+      <button onclick="toggleUrgent('${item.id}')" class="ab${item.isUrgent?" urg":""}">${item.isUrgent?"🔴 Urgent":"Mark Urgent"}</button>
+      <button onclick="openCloseModal('${item.id}')" class="ab cls">✓ Close</button>
+      <button onclick="deleteItem('${item.id}')" class="ab del">✕</button>
+    </div>`:`<div class="act-row">
+      <button onclick="reopenItem('${item.id}')" class="ab reopen" style="width:100%;flex:1;">Reopen</button>
+    </div>`}
+  </div>`;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function toggleUrgent(id) {
+  const i = TRACKER.items.find(x=>x.id===id); if(!i) return;
+  i.isUrgent=!i.isUrgent; saveTracker(); render();
+}
+let _cid=null;
+function openCloseModal(id) {
+  _cid=id;
+  document.getElementById("close-modal").classList.add("open");
+  document.getElementById("modal-res").value="";
+  document.getElementById("modal-by").value="";
+}
+function cancelClose() { _cid=null; document.getElementById("close-modal").classList.remove("open"); }
+function confirmClose() {
+  if(!_cid) return;
+  const i=TRACKER.items.find(x=>x.id===_cid); if(!i) return;
+  i.status="closed"; i.closedDate=new Date().toISOString();
+  i.resolution=document.getElementById("modal-res").value;
+  i.closedBy=document.getElementById("modal-by").value;
+  _cid=null; document.getElementById("close-modal").classList.remove("open");
+  saveTracker(); render(); showToast("Item closed ✓");
+}
+function reopenItem(id) {
+  const i=TRACKER.items.find(x=>x.id===id); if(!i) return;
+  i.status="open";i.closedDate=null;i.closedBy="";i.resolution="";
+  saveTracker();render();
+}
+function deleteItem(id) {
+  showConfirm("Remove Item","Remove this item?",function(){TRACKER.items=TRACKER.items.filter(x=>x.id!==id);
+  saveTracker();render();});
+}
+function clearClosed() {
+  showConfirm("Remove Closed","Remove all closed items from the tracker? This cannot be undone.",function(){TRACKER.items=TRACKER.items.filter(i=>i.status!=="closed");
+  saveTracker();render();showToast("Closed items removed");});
+}
+function clearAll() {
+  showConfirm("Clear All","Clear ALL tracker data? This cannot be undone.",function(){TRACKER.items=[];saveTracker();render();showToast("Tracker cleared");});
+}
+function setView(v) { activeView=v; render(); window.scrollTo(0,0); }
+function setStatusFilter(f) { filterStatus=f; render(); }
+function setViewFilter(view, status, building, section) {
+  activeView=view;
+  if(status)   filterStatus=status;
+  if(building) filterBuilding=building;
+  if(section)  filterSection=section||"All";
+  render(); window.scrollTo(0,0);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function exportAll() {
+  const L=[];
+  L.push("OKCPS CORRECTIVE ACTION TRACKER REPORT");
+  L.push("Generated: "+new Date().toLocaleString());
+  L.push("=".repeat(52));
+  const urgent=TRACKER.items.filter(i=>itemStatus(i)==="urgent");
+  const overdue=TRACKER.items.filter(i=>itemStatus(i)==="overdue");
+  const open=TRACKER.items.filter(i=>itemStatus(i)==="open");
+  const closed=TRACKER.items.filter(i=>itemStatus(i)==="closed");
+  L.push(`SUMMARY: ${urgent.length+overdue.length} Flagged · ${open.length} Open · ${closed.length} Closed · ${TRACKER.items.length} Total`);
+  L.push("");
+  [["URGENT / OVERDUE",[...urgent,...overdue]],["OPEN",open],["CLOSED",closed]].forEach(([h,items])=>{
+    if(!items.length)return;
+    L.push("─".repeat(52));L.push(`${h} (${items.length})`);
+    items.forEach((i,n)=>{
+      const days=daysSince(i.loggedDate);
+      L.push(`${n+1}. [${i.building}] ${i.sectionIcon} ${i.section}`);
+      L.push(`   ${i.itemText}`);
+      if(i.note)L.push(`   Note: ${i.note}`);
+      L.push(`   Logged: ${new Date(i.loggedDate).toLocaleDateString()} by ${i.loggedBy||"—"} · Day ${days}`);
+      if(i.status==="closed"){
+        L.push(`   Closed: ${i.closedDate?new Date(i.closedDate).toLocaleDateString():"—"} by ${i.closedBy||"—"}`);
+        if(i.resolution)L.push(`   Resolution: ${i.resolution}`);
+      }
+    });L.push("");
+  });
+  const text=L.join("\n");
+  if(navigator.share){navigator.share({title:"OKCPS Corrective Action Tracker",text}).catch(()=>{});}
+  else{navigator.clipboard.writeText(text).then(()=>showToast("Copied!")).catch(()=>showToast("Copy failed"));}
+}
+function exportCSV() {
+  const rows=[["Building","Section","Item","Status","Days Open","Logged By","Logged Date","Closed By","Close Date","Resolution"]];
+  TRACKER.items.forEach(i=>{
+    const st=itemStatus(i);const days=daysSince(i.loggedDate);
+    rows.push([i.building,i.section,i.itemText,st,i.status==="closed"?0:days,i.loggedBy||"",new Date(i.loggedDate).toLocaleDateString(),i.closedBy||"",i.closedDate?new Date(i.closedDate).toLocaleDateString():"",i.resolution||""]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="OKCPS_Tracker.csv";a.click();
+  URL.revokeObjectURL(url);showToast("CSV downloaded");
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let _tt;function showToast(msg){const e=document.getElementById("toast");e.textContent=msg;e.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>e.classList.remove("show"),2200);}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+
+// ── ARCHIVE (read full inspection records saved by the form) ──────────────
+const ARCHIVE_STORE = "okcps_archive_v1";
+let ARCHIVE = { inspections: [] };
+function loadArchive() {
+  try { const r=localStorage.getItem(ARCHIVE_STORE); if(r) ARCHIVE=JSON.parse(r); if(!ARCHIVE.inspections) ARCHIVE.inspections=[]; } catch(e) {}
+}
+
+function renderArchiveTab() {
+  if (!ARCHIVE.inspections.length) {
+    return '<div class="empty"><div class="eico">&#128193;</div><div class="ettl">No saved inspection records yet</div><div class="esub">Complete an inspection in the OKCPS Inspection Form, then tap Save &amp; Start New to archive it here.</div></div>';
+  }
+  var html = '<div style="font-size:12px;color:var(--gray);margin-bottom:12px;">'+ARCHIVE.inspections.length+' record'+(ARCHIVE.inspections.length!==1?"s":"")+ ' saved on this device</div>';
+  ARCHIVE.inspections.forEach(function(insp) {
+    var st = insp.stats || {};
+    var pct = st.total ? Math.round(st.pass/st.total*100) : 0;
+    var savedDate = new Date(insp.savedDate).toLocaleDateString();
+    var fc = st.fail > 0 ? "var(--red)" : "var(--green)";
+    var id = insp.id;
+    html += '<div class="card" style="padding:13px;">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">'
+      +'<div style="flex:1;">'
+      +'<div style="font-size:14px;font-weight:800;color:var(--ink);">'+(insp.meta.building||"Unknown Building")+'</div>'
+      +'<div style="font-size:11px;color:var(--gray);margin-top:2px;">'+(insp.meta.date||"—")+' · '+(insp.meta.inspector||"—")+'</div>'
+      +'<div style="font-size:10px;color:var(--light);margin-top:1px;">Saved '+savedDate+'</div>'
+      +'</div>'
+      +'<div style="text-align:center;margin-left:10px;">'
+      +'<div style="font-size:22px;font-weight:900;color:'+fc+';line-height:1;">'+pct+'%</div>'
+      +'<div style="font-size:9px;color:var(--gray);font-weight:700;margin-top:2px;">'+(st.pass||0)+'P / '+(st.fail||0)+'F / '+(st.na||0)+'N</div>'
+      +'</div></div>'
+      +'<div style="display:flex;gap:7px;">'
+      +'<button data-action="view-inspection" data-id="'+id+'" style="flex:2;padding:9px;border-radius:8px;border:1.5px solid var(--steel);background:#fff;color:var(--steel);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">View Report</button>'
+      +'<button data-action="export-inspection" data-id="'+id+'" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--bord);background:#fafbfc;color:var(--gray);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;">&#128228; Export</button>'
+      +'</div></div>';
+  });
+  return html;
+}
+
+function viewInspection(id) {
+  const insp = ARCHIVE.inspections.find(i=>i.id===id);
+  if(!insp) return;
+  const st = insp.stats||{};
+  const pct = st.total?Math.round(st.pass/st.total*100):0;
+  let secHtml="";
+  (insp.sections||[]).forEach(sec=>{
+    let hasAnswers=false;let itemsHtml="";
+    sec.groups.forEach(g=>{
+      if(g.name) itemsHtml+=`<div style="font-size:10px;font-weight:800;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px;border-bottom:1px solid var(--bord);margin-bottom:6px;">${g.name}</div>`;
+      g.items.forEach(it=>{
+        if(!it.status)return;hasAnswers=true;
+        const col=it.status==="pass"?"var(--green)":it.status==="fail"?"var(--red)":"var(--gray)";
+        const bg=it.status==="pass"?"var(--gbg)":it.status==="fail"?"var(--redbg)":"#f7fafc";
+        itemsHtml+=`<div style="background:${bg};border-left:3px solid ${col};border-radius:6px;padding:8px 10px;margin-bottom:6px;">
+          <div style="display:flex;gap:8px;align-items:baseline;">
+            <span style="font-size:10px;font-weight:800;color:${col};text-transform:uppercase;white-space:nowrap;">${it.status.toUpperCase()}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--ink);line-height:1.35;">${it.text}</span>
+          </div>
+          ${it.note?`<div style="font-size:12px;color:#555;margin-top:4px;font-style:italic;">${it.note}</div>`:""}
+          ${it.photos&&it.photos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">${it.photos.map(p=>`<img src="${p}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--bord);">`).join("")}</div>`:""}
+        </div>`;
+      });
+    });
+    if(!hasAnswers)return;
+    secHtml+=`<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:8px;">${sec.icon} ${sec.label}</div>${itemsHtml}</div>`;
+  });
+  const modal=document.createElement("div");
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;";
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:88vh;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);">
+    <div style="padding:16px;border-bottom:1px solid var(--bord);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div><div style="font-size:15px;font-weight:800;color:var(--navy);">${insp.meta.building}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:2px;">${insp.meta.date||"—"} · ${insp.meta.inspector||"—"}</div></div>
+        <div style="text-align:center;"><div style="font-size:24px;font-weight:900;color:${st.fail>0?"var(--red)":"var(--green)"};line-height:1;">${pct}%</div>
+        <div style="font-size:10px;color:var(--gray);">${st.pass}P · ${st.fail}F · ${st.na}N</div></div>
+      </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:14px;">${secHtml||"<div style='text-align:center;padding:20px;color:var(--gray);'>No answered items found</div>"}</div>
+    <div style="padding:12px 14px;border-top:1px solid var(--bord);flex-shrink:0;display:flex;gap:8px;">
+      <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;border-radius:9px;border:1.5px solid var(--bord);background:#fff;color:var(--gray);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;">Close</button>
+      <button onclick="exportInspection('${id}')" style="flex:2;padding:12px;border-radius:9px;border:none;background:var(--navy);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;">📤 Export Report</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+}
+
+function exportInspection(id) {
+  const insp=ARCHIVE.inspections.find(i=>i.id===id);if(!insp)return;
+  const st=insp.stats||{};const pct=st.total?Math.round(st.pass/st.total*100):0;
+  const L=[];
+  L.push("OKCPS SAFETY INSPECTION — FULL REPORT");L.push("=".repeat(52));
+  L.push(`Building:    ${insp.meta.building||"—"}`);L.push(`Date:        ${insp.meta.date||"—"}`);
+  L.push(`Inspector:   ${insp.meta.inspector||"—"}`);L.push(`Type:        ${insp.meta.type||"—"}`);
+  L.push(`Saved:       ${new Date(insp.savedDate).toLocaleString()}`);L.push("");
+  L.push(`SCORE: ${st.pass||0} Pass / ${st.fail||0} Fail / ${st.na||0} N/A — ${pct}%`);L.push("");
+  (insp.sections||[]).forEach(sec=>{
+    L.push("─".repeat(52));L.push(`${sec.icon}  ${sec.label.toUpperCase()}`);
+    sec.groups.forEach(g=>{
+      if(g.name)L.push(`  [${g.name}]`);
+      g.items.forEach(it=>{
+        const s=it.status?it.status.toUpperCase():"—";
+        L.push(`  [${s}] ${it.text}`);
+        if(it.note)L.push(`       ↳ ${it.note}`);
+        if(it.caRequired)L.push(`       ⚡ Corrective Action Required${it.caDue?" — Due: "+it.caDue:""}`);
+      });
+    });L.push("");
+  });
+  const text=L.join("\n");
+  if(navigator.share){navigator.share({title:"OKCPS Inspection Report",text}).catch(()=>{});}
+  else{navigator.clipboard.writeText(text).then(()=>showToast("Copied!")).catch(()=>showToast("Use Share instead"));}
+}
+
+
+document.addEventListener("click", function(e) {
+  var fb=e.target.closest("[data-action]");if(!fb)return;
+  var action=fb.getAttribute("data-action");var id=fb.getAttribute("data-id");
+  if(action==="view-inspection"){viewInspection(id);}
+  else if(action==="export-inspection"){exportInspection(id);}
+  else if(action==="delete-item"){showConfirm("Remove Item","Remove this item? This cannot be undone.",function(){TRACKER.items=TRACKER.items.filter(function(i){return i.id!==id;});saveTracker();render();});return;}
+  else if(action==="toggle-urgent"){var itm=TRACKER.items.find(function(i){return i.id===id;});if(itm){itm.isUrgent=!itm.isUrgent;saveTracker();render();}}
+  else if(action==="close-item"){openCloseModal(id);}
+  else if(action==="reopen-item"){var itm=TRACKER.items.find(function(i){return i.id===id;});if(itm){itm.status="open";itm.closedDate=null;itm.closedBy="";itm.resolution="";saveTracker();render();}}
+});
+
+
+function showConfirm(title, msg, onOk, okLabel, okGreen) {
+  var modal=document.getElementById("confirm-modal");
+  var titleEl=document.getElementById("cm-title");
+  var msgEl=document.getElementById("cm-msg");
+  var okBtn=document.getElementById("cm-ok");
+  var cancelBtn=document.getElementById("cm-cancel");
+  if(!modal)return;
+  titleEl.textContent=title||"Confirm";
+  msgEl.textContent=msg||"";
+  okBtn.textContent=okLabel||"Confirm";
+  okBtn.className="cm-ok"+(okGreen?" green":"");
+  modal.classList.add("open");
+  okBtn.onclick=function(){modal.classList.remove("open");if(onOk)onOk();};
+  cancelBtn.onclick=function(){modal.classList.remove("open");};
+  modal.onclick=function(e){if(e.target===modal)modal.classList.remove("open");};
+}
+
+loadTracker();loadArchive();render();
+</script>
+</body>
+</html>
