@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKCPS Safety Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c;}
+.topbar{background:#1a2f4e;color:#fff;padding:14px 16px;position:sticky;top:0;z-index:50;}
+.topbar-title{font-size:16px;font-weight:800;letter-spacing:.3px;}
+.topbar-sub{font-size:11px;opacity:.7;margin-top:2px;}
+.tabs{display:flex;gap:4px;padding:10px 16px 0;background:#1a2f4e;overflow-x:auto;}
+.tab{flex:0 0 auto;padding:8px 14px;border-radius:8px 8px 0 0;border:none;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;}
+.tab.active{background:#fff;color:#1a2f4e;}
+.content{padding:14px;max-width:900px;margin:0 auto;}
+.card{background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stat-box{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:12px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.stat-num{font-size:26px;font-weight:900;line-height:1;}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;color:#64748b;}
+.insp-card{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:13px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.insp-building{font-size:14px;font-weight:800;color:#1a202c;}
+.insp-meta{font-size:11px;color:#64748b;margin-top:2px;}
+.insp-score{font-size:22px;font-weight:900;line-height:1;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
+.badge-fail{background:#fff5f5;color:#c53030;border:1px solid #feb2b2;}
+.badge-pass{background:#f0fff4;color:#276749;border:1px solid #9ae6b4;}
+.badge-open{background:#fffbeb;color:#92400e;border:1px solid #f6e05e;}
+.badge-urgent{background:#fff5f5;color:#c53030;border:1px solid #feb2b2;}
+.section-ttl{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.filter-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+.filter-btn{flex:0 0 auto;padding:6px 14px;border-radius:20px;border:1.5px solid #cbd5e1;background:#fff;color:#64748b;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
+.filter-btn.active{background:#1a2f4e;border-color:#1a2f4e;color:#fff;}
+.tracker-item{background:#fff;border:1px solid #cbd5e1;border-left:4px solid #c53030;border-radius:10px;padding:12px;margin-bottom:8px;}
+.tracker-item.open{border-left-color:#d69e2e;}
+.tracker-item.closed{border-left-color:#276749;opacity:.7;}
+.ti-status{font-size:10px;font-weight:800;color:#c53030;margin-bottom:3px;}
+.ti-status.open{color:#92400e;}
+.ti-status.closed{color:#276749;}
+.ti-loc{font-size:11px;color:#64748b;margin-bottom:4px;}
+.ti-text{font-size:13px;font-weight:600;color:#1a202c;line-height:1.4;}
+.ti-note{font-size:12px;color:#555;font-style:italic;margin-top:4px;}
+.ti-meta{font-size:10px;color:#94a3b8;margin-top:6px;}
+.empty{text-align:center;padding:40px 20px;color:#94a3b8;}
+.empty-ico{font-size:36px;margin-bottom:8px;}
+.empty-ttl{font-size:15px;font-weight:700;color:#64748b;margin-bottom:4px;}
+.empty-sub{font-size:13px;}
+.loading{text-align:center;padding:30px;color:#64748b;}
+.spin{display:inline-block;width:24px;height:24px;border:3px solid #cbd5e1;border-top-color:#1a2f4e;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.prog-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:6px;}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s;}
+.refresh-btn{float:right;padding:6px 12px;border-radius:8px;border:1.5px solid #1a2f4e;background:#fff;color:#1a2f4e;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
+.campus-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+.campus-row:last-child{border-bottom:none;}
+.campus-name{flex:1;font-size:13px;font-weight:600;}
+.campus-score{font-size:13px;font-weight:800;width:42px;text-align:right;}
+.campus-bar{flex:2;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div class="topbar-title">OKCPS Safety Dashboard</div>
+      <div class="topbar-sub">Safety & Compliance — Live View</div>
+    </div>
+    <div style="font-size:11px;opacity:.6;" id="last-sync">Syncing…</div>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="setTab('overview')">📊 Overview</button>
+  <button class="tab" onclick="setTab('inspections')">📋 Inspections</button>
+  <button class="tab" onclick="setTab('tracker')">⚠️ Corrective Actions</button>
+  <button class="tab" onclick="setTab('equipment')">🧊 Equipment</button>
+</div>
+
+<div class="content" id="main-content">
+  <div class="loading"><div class="spin"></div><br>Loading data…</div>
+</div>
+
+<script>
+const SB_URL = "https://dkmmrdukdejvhuwptaug.supabase.co";
+const SB_KEY = "sb_publishable_nHVinO6HJ4NWGslANndcHg_M0gopX3u";
+
+var activeTab    = "overview";
+var inspections  = [];
+var trackerItems = [];
+var equipItems   = [];
+var campusFilter = "All";
+var statusFilter = "All";
+
+async function sbFetch(table, params) {
+  var url = SB_URL + "/rest/v1/" + table + "?" + (params || "select=*&order=created_at.desc");
+  try {
+    var r = await fetch(url, {
+      headers: {
+        "apikey":        SB_KEY,
+        "Authorization": "Bearer " + SB_KEY,
+      }
+    });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch(e) {
+    console.error("Fetch error:", e);
+    return [];
+  }
+}
+
+async function loadAll() {
+  document.getElementById("main-content").innerHTML = '<div class="loading"><div class="spin"></div><br>Loading data…</div>';
+  inspections  = await sbFetch("inspections",  "select=*&order=saved_date.desc");
+  trackerItems = await sbFetch("tracker_items","select=*&order=logged_date.desc");
+  equipItems   = await sbFetch("equipment_log","select=*&order=logged_date.desc");
+  document.getElementById("last-sync").textContent = "Updated " + new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  render();
+}
+
+function setTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("active"); });
+  event.target.classList.add("active");
+  render();
+}
+
+function render() {
+  var c = document.getElementById("main-content");
+  if      (activeTab === "overview")     c.innerHTML = renderOverview();
+  else if (activeTab === "inspections")  c.innerHTML = renderInspections();
+  else if (activeTab === "tracker")      c.innerHTML = renderTracker();
+  else if (activeTab === "equipment")    c.innerHTML = renderEquipment();
+}
+
+function renderOverview() {
+  var totalInsp   = inspections.length;
+  var totalFails  = trackerItems.filter(function(i){ return i.status !== "closed"; }).length;
+  var urgent      = trackerItems.filter(function(i){ return i.is_urgent && i.status !== "closed"; }).length;
+  var overdue     = trackerItems.filter(function(i){
+    if (i.status === "closed") return false;
+    return Math.floor((Date.now() - new Date(i.logged_date).getTime()) / 86400000) > 14;
+  }).length;
+  var avgScore    = inspections.length ? Math.round(inspections.reduce(function(s,i){ return s + (i.score_pct||0); }, 0) / inspections.length) : 0;
+
+  // Campus breakdown
+  var campusMap = {};
+  inspections.forEach(function(i) {
+    if (!i.building) return;
+    if (!campusMap[i.building]) campusMap[i.building] = [];
+    campusMap[i.building].push(i);
+  });
+  var campuses = Object.keys(campusMap).sort();
+
+  var html = '';
+
+  // Stat boxes
+  html += '<div class="stat-grid">';
+  html += statBox(totalInsp, "Inspections", "#1a2f4e", "#ebf2fa", "#90cdf4");
+  html += statBox(avgScore + "%", "Avg Score", avgScore >= 80 ? "#276749" : "#92400e", avgScore >= 80 ? "#f0fff4" : "#fffbeb", avgScore >= 80 ? "#9ae6b4" : "#f6e05e");
+  html += statBox(totalFails, "Open CAs", totalFails > 0 ? "#c53030" : "#276749", totalFails > 0 ? "#fff5f5" : "#f0fff4", totalFails > 0 ? "#feb2b2" : "#9ae6b4");
+  html += statBox(urgent + overdue, "Flagged", urgent + overdue > 0 ? "#c53030" : "#276749", urgent + overdue > 0 ? "#fff5f5" : "#f0fff4", urgent + overdue > 0 ? "#feb2b2" : "#9ae6b4");
+  html += '</div>';
+
+  // Recent inspections
+  html += '<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+  html += '<div class="section-ttl" style="margin:0;">Recent Inspections</div>';
+  html += '<button class="refresh-btn" onclick="loadAll()">↻ Refresh</button></div>';
+
+  if (!inspections.length) {
+    html += '<div class="empty"><div class="empty-ico">📋</div><div class="empty-ttl">No inspections yet</div><div class="empty-sub">Inspections will appear here after Ricky completes and saves them.</div></div>';
+  } else {
+    inspections.slice(0, 5).forEach(function(i) {
+      var fc = i.score_fail > 0 ? "#c53030" : "#276749";
+      html += '<div class="campus-row">'
+        + '<div class="campus-name">' + (i.building || "—") + '<div style="font-size:10px;color:#94a3b8;">' + (i.insp_date || "—") + ' · ' + (i.inspector || "—") + '</div></div>'
+        + '<div class="campus-bar"><div class="prog-bar"><div class="prog-fill" style="width:' + (i.score_pct||0) + '%;background:' + fc + ';"></div></div></div>'
+        + '<div class="campus-score" style="color:' + fc + ';">' + (i.score_pct||0) + '%</div>'
+        + '</div>';
+    });
+  }
+  html += '</div>';
+
+  // Campus breakdown
+  if (campuses.length) {
+    html += '<div class="card"><div class="section-ttl">Campus Breakdown (' + campuses.length + ' inspected)</div>';
+    campuses.forEach(function(campus) {
+      var items = campusMap[campus];
+      var latest = items[0];
+      var fc = (latest.score_fail||0) > 0 ? "#c53030" : "#276749";
+      var openCAs = trackerItems.filter(function(t){ return t.building === campus && t.status !== "closed"; }).length;
+      html += '<div class="campus-row">'
+        + '<div class="campus-name">' + campus
+        + (openCAs > 0 ? ' <span class="badge badge-fail">' + openCAs + ' open</span>' : '')
+        + '<div style="font-size:10px;color:#94a3b8;">' + items.length + ' inspection' + (items.length !== 1 ? "s" : "") + '</div></div>'
+        + '<div class="campus-bar"><div class="prog-bar"><div class="prog-fill" style="width:' + (latest.score_pct||0) + '%;background:' + fc + ';"></div></div></div>'
+        + '<div class="campus-score" style="color:' + fc + ';">' + (latest.score_pct||0) + '%</div>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  return html;
+}
+
+function statBox(val, lbl, col, bg, brd) {
+  return '<div class="stat-box" style="background:' + bg + ';border-color:' + brd + ';">'
+    + '<div class="stat-num" style="color:' + col + ';">' + val + '</div>'
+    + '<div class="stat-lbl">' + lbl + '</div></div>';
+}
+
+function renderInspections() {
+  // Get unique buildings for filter
+  var buildings = ["All"].concat([...new Set(inspections.map(function(i){ return i.building; }).filter(Boolean))].sort());
+  var filtered = campusFilter === "All" ? inspections : inspections.filter(function(i){ return i.building === campusFilter; });
+
+  var html = '<div class="filter-row">';
+  buildings.forEach(function(b) {
+    html += '<button class="filter-btn' + (campusFilter === b ? " active" : "") + '" onclick="campusFilter=\'' + b.replace(/'/g,"\\'") + '\';render();">' + b + '</button>';
+  });
+  html += '</div>';
+
+  if (!filtered.length) {
+    html += '<div class="empty"><div class="empty-ico">📋</div><div class="empty-ttl">No inspections found</div></div>';
+    return html;
+  }
+
+  filtered.forEach(function(insp) {
+    var fc = (insp.score_fail||0) > 0 ? "#c53030" : "#276749";
+    html += '<div class="insp-card">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;">'
+      + '<div style="flex:1;">'
+      + '<div class="insp-building">' + (insp.building || "Unknown Building") + '</div>'
+      + '<div class="insp-meta">' + (insp.insp_date || "—") + ' · ' + (insp.inspector || "—") + '</div>'
+      + '<div class="insp-meta">' + (insp.insp_type || "") + '</div>'
+      + '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">'
+      + '<span class="badge" style="background:#f0fff4;color:#276749;border-color:#9ae6b4;">' + (insp.score_pass||0) + ' Pass</span>'
+      + (insp.score_fail > 0 ? '<span class="badge badge-fail">' + insp.score_fail + ' Fail</span>' : '')
+      + '<span class="badge" style="background:#f1f5f9;color:#4a5568;border-color:#e2e8f0;">' + (insp.score_na||0) + ' N/A</span>'
+      + (insp.hazard_count > 0 ? '<span class="badge" style="background:#fffbeb;color:#92400e;border-color:#f6e05e;">⚠️ ' + insp.hazard_count + ' hazard' + (insp.hazard_count!==1?"s":"") + '</span>' : '')
+      + '</div></div>'
+      + '<div style="text-align:center;margin-left:10px;">'
+      + '<div class="insp-score" style="color:' + fc + ';">' + (insp.score_pct||0) + '%</div>'
+      + '<div style="font-size:9px;color:#94a3b8;font-weight:700;margin-top:2px;">SCORE</div>'
+      + '</div></div>'
+      + '<div class="prog-bar" style="margin-top:8px;"><div class="prog-fill" style="width:' + (insp.score_pct||0) + '%;background:' + fc + ';"></div></div>'
+      + '</div>';
+  });
+
+  return html;
+}
+
+function renderTracker() {
+  var open    = trackerItems.filter(function(i){ return i.status !== "closed"; });
+  var closed  = trackerItems.filter(function(i){ return i.status === "closed"; });
+  var urgent  = open.filter(function(i){ return i.is_urgent; });
+  var overdue = open.filter(function(i){
+    return Math.floor((Date.now() - new Date(i.logged_date).getTime()) / 86400000) > 14;
+  });
+
+  var html = '<div class="stat-grid">';
+  html += statBox(urgent.length + overdue.length, "Flagged", "#c53030", "#fff5f5", "#feb2b2");
+  html += statBox(open.length, "Open", "#92400e", "#fffbeb", "#f6e05e");
+  html += statBox(closed.length, "Closed", "#276749", "#f0fff4", "#9ae6b4");
+  html += statBox(trackerItems.length, "Total", "#1a2f4e", "#ebf2fa", "#90cdf4");
+  html += '</div>';
+
+  html += '<div class="filter-row">';
+  ["All","Flagged","Open","Closed"].forEach(function(f) {
+    html += '<button class="filter-btn' + (statusFilter === f ? " active" : "") + '" onclick="statusFilter=\'' + f + '\';render();">' + f + '</button>';
+  });
+  html += '</div>';
+
+  var filtered = trackerItems;
+  if (statusFilter === "Flagged") filtered = trackerItems.filter(function(i){
+    if (i.status === "closed") return false;
+    var days = Math.floor((Date.now() - new Date(i.logged_date).getTime()) / 86400000);
+    return i.is_urgent || days > 14;
+  });
+  else if (statusFilter === "Open")   filtered = open;
+  else if (statusFilter === "Closed") filtered = closed;
+
+  if (!filtered.length) {
+    html += '<div class="empty"><div class="empty-ico">✅</div><div class="empty-ttl">No ' + statusFilter.toLowerCase() + ' items</div></div>';
+    return html;
+  }
+
+  filtered.forEach(function(item) {
+    var days = Math.floor((Date.now() - new Date(item.logged_date).getTime()) / 86400000);
+    var isOverdue = days > 14 && item.status !== "closed";
+    var statusCls = item.status === "closed" ? "closed" : isOverdue || item.is_urgent ? "" : "open";
+    var statusTxt = item.status === "closed" ? "✅ Closed"
+      : item.is_urgent ? "🔴 URGENT"
+      : isOverdue ? "🔴 Overdue · Day " + days
+      : "🟡 Open · Day " + days + " of 14";
+
+    html += '<div class="tracker-item ' + statusCls + '">'
+      + '<div class="ti-status ' + statusCls + '">' + statusTxt + '</div>'
+      + '<div class="ti-loc">' + (item.section_icon||"") + ' ' + (item.section||"") + ' · ' + (item.building||"") + '</div>'
+      + '<div class="ti-text">' + (item.item_text||"") + '</div>'
+      + (item.note ? '<div class="ti-note">' + item.note + '</div>' : '')
+      + (item.status === "closed" && item.resolution ? '<div style="margin-top:6px;padding:6px 8px;background:#f0fff4;border-radius:6px;font-size:12px;color:#276749;font-weight:600;">✓ ' + item.resolution + '</div>' : '')
+      + '<div class="ti-meta">Logged ' + new Date(item.logged_date).toLocaleDateString() + (item.logged_by ? " by " + item.logged_by : "") + (item.status === "closed" && item.closed_date ? " · Closed " + new Date(item.closed_date).toLocaleDateString() : "") + '</div>'
+      + '</div>';
+  });
+
+  return html;
+}
+
+function renderEquipment() {
+  var types = ["Mini Refrigerator","Microwave","Coffee Maker / Keurig"];
+  var icons  = {"Mini Refrigerator":"🧊","Microwave":"📡","Coffee Maker / Keurig":"☕"};
+
+  var html = '<div class="stat-grid">';
+  types.forEach(function(t) {
+    var count = equipItems.filter(function(i){ return i.appliance_type === t; }).length;
+    html += statBox(count, t.split(" ")[0], "#0e7490", "#ecfeff", "#67e8f9");
+  });
+  html += statBox(equipItems.length, "Total", "#1a2f4e", "#ebf2fa", "#90cdf4");
+  html += '</div>';
+
+  if (!equipItems.length) {
+    html += '<div class="empty"><div class="empty-ico">🧊</div><div class="empty-ttl">No equipment logged yet</div><div class="empty-sub">Appliances found during inspections will appear here.</div></div>';
+    return html;
+  }
+
+  types.forEach(function(type) {
+    var items = equipItems.filter(function(i){ return i.appliance_type === type; });
+    if (!items.length) return;
+    html += '<div class="card"><div class="section-ttl">' + icons[type] + ' ' + type + ' (' + items.length + ')</div>';
+    items.forEach(function(item) {
+      html += '<div class="campus-row">'
+        + '<div class="campus-name">' + (item.room || "Room not specified")
+        + (item.teacher ? '<div style="font-size:11px;color:#64748b;">👤 ' + item.teacher + '</div>' : '')
+        + (item.notes ? '<div style="font-size:11px;color:#555;font-style:italic;">' + item.notes + '</div>' : '')
+        + '<div style="font-size:10px;color:#94a3b8;">' + (item.building||"—") + ' · ' + new Date(item.logged_date).toLocaleDateString() + '</div>'
+        + '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  return html;
+}
+
+// Load data on startup
+loadAll();
+
+// Auto-refresh every 5 minutes
+setInterval(loadAll, 300000);
+</script>
+</body>
+</html>
