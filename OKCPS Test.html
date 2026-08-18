@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKCPS Supabase Test</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#f5f8fc;padding:16px;color:#1a202c;}
+.card{background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin-bottom:12px;}
+h2{font-size:15px;font-weight:800;color:#1a2f4e;margin-bottom:12px;}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;margin-bottom:8px;}
+.green{background:#276749;color:#fff;}
+.navy{background:#1a2f4e;color:#fff;}
+.red{background:#c53030;color:#fff;}
+.log{background:#1a202c;color:#68d391;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;min-height:60px;max-height:400px;overflow-y:auto;white-space:pre-wrap;margin-top:8px;}
+.ok{color:#68d391;}
+.err{color:#fc8181;}
+.info{color:#90cdf4;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>🔌 Step 1 — Test Connection</h2>
+  <button class="btn navy" onclick="testConn()">Test Supabase Connection</button>
+  <div class="log" id="conn-log">Tap button above…</div>
+</div>
+
+<div class="card">
+  <h2>📋 Step 2 — Check Tables</h2>
+  <button class="btn navy" onclick="checkTables()">Check Tables Exist</button>
+  <div class="log" id="table-log">Tap button above…</div>
+</div>
+
+<div class="card">
+  <h2>💾 Step 3 — Write Test Record</h2>
+  <button class="btn green" onclick="writeTest()">Write Test Inspection</button>
+  <div class="log" id="write-log">Tap button above…</div>
+</div>
+
+<div class="card">
+  <h2>📖 Step 4 — Read Records</h2>
+  <button class="btn green" onclick="readRecords()">Read All Inspections</button>
+  <div class="log" id="read-log">Tap button above…</div>
+</div>
+
+<div class="card">
+  <h2>🗑 Step 5 — Delete Test Record</h2>
+  <button class="btn red" onclick="deleteTest()">Delete Test Record</button>
+  <div class="log" id="delete-log">Tap button above…</div>
+</div>
+
+<script>
+const URL = "https://dkmmrdukdejvhuwptaug.supabase.co";
+const KEY = "sb_publishable_nHVinO6HJ4NWGslANndcHg_M0gopX3u";
+const TEST_ID = "test_record_001";
+
+function log(elId, msg, cls) {
+  var el = document.getElementById(elId);
+  el.innerHTML += '\n<span class="' + (cls||"info") + '">' + new Date().toLocaleTimeString() + ' — ' + msg + '</span>';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function req(method, path, body, prefer) {
+  var hdrs = {
+    "apikey": KEY,
+    "Authorization": "Bearer " + KEY,
+    "Content-Type": "application/json",
+  };
+  if (prefer) hdrs["Prefer"] = prefer;
+  var opts = { method: method, headers: hdrs };
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(URL + path, opts);
+  var txt = await r.text();
+  var json = null;
+  try { json = JSON.parse(txt); } catch(e){}
+  return { ok: r.ok, status: r.status, data: json, text: txt };
+}
+
+async function testConn() {
+  var el = "conn-log";
+  document.getElementById(el).textContent = "";
+  log(el, "Pinging Supabase...", "info");
+  try {
+    var r = await fetch(URL + "/rest/v1/", {
+      headers: { "apikey": KEY, "Authorization": "Bearer " + KEY }
+    });
+    log(el, "Response status: " + r.status, r.status < 500 ? "ok" : "err");
+    if (r.status === 200 || r.status === 404) {
+      log(el, "✓ Supabase is reachable!", "ok");
+    } else {
+      log(el, "✗ Unexpected status — check your API key", "err");
+    }
+  } catch(e) {
+    log(el, "✗ Network error: " + e.message, "err");
+  }
+}
+
+async function checkTables() {
+  var el = "table-log";
+  document.getElementById(el).textContent = "";
+  for (var t of ["inspections","tracker_items","equipment_log"]) {
+    log(el, "Checking table: " + t + "...", "info");
+    var r = await req("GET", "/rest/v1/" + t + "?limit=1", null, null);
+    if (r.status === 200) {
+      log(el, "✓ " + t + " exists (" + (r.data ? r.data.length : 0) + " records)", "ok");
+    } else {
+      log(el, "✗ " + t + " — status " + r.status + ": " + r.text.slice(0,100), "err");
+    }
+  }
+}
+
+async function writeTest() {
+  var el = "write-log";
+  document.getElementById(el).textContent = "";
+  log(el, "Writing test record...", "info");
+
+  var record = {
+    id:           TEST_ID,
+    saved_date:   new Date().toISOString(),
+    building:     "TEST — Roosevelt Middle School",
+    insp_date:    new Date().toLocaleDateString(),
+    inspector:    "Ricky Tann",
+    insp_type:    "Test",
+    score_pass:   10,
+    score_fail:   2,
+    score_na:     1,
+    score_total:  13,
+    score_pct:    77,
+    hazard_count: 0,
+    sections_json:"[]",
+    hazards_json: "[]",
+  };
+
+  var r = await req(
+    "POST",
+    "/rest/v1/inspections?on_conflict=id",
+    record,
+    "return=minimal,resolution=merge-duplicates"
+  );
+
+  log(el, "Response status: " + r.status, "info");
+  log(el, "Response body: " + (r.text || "(empty)"), "info");
+
+  if (r.ok || r.status === 200 || r.status === 201 || r.status === 204) {
+    log(el, "✓ Test record written successfully!", "ok");
+    log(el, "Now tap Read Records to confirm it saved", "info");
+  } else {
+    log(el, "✗ Write failed — status " + r.status, "err");
+    log(el, "Error: " + r.text.slice(0, 200), "err");
+  }
+}
+
+async function readRecords() {
+  var el = "read-log";
+  document.getElementById(el).textContent = "";
+  log(el, "Reading all inspections...", "info");
+
+  var r = await req("GET", "/rest/v1/inspections?select=*&order=saved_date.desc", null, null);
+
+  log(el, "Status: " + r.status, "info");
+
+  if (r.ok && r.data) {
+    log(el, "✓ Found " + r.data.length + " record(s)", "ok");
+    r.data.forEach(function(row, i) {
+      log(el, (i+1) + ". " + (row.building||"?") + " · " + (row.insp_date||"?") + " · " + (row.score_pct||0) + "% · by " + (row.inspector||"?"), "ok");
+    });
+    if (!r.data.length) {
+      log(el, "No records found — table is empty", "err");
+    }
+  } else {
+    log(el, "✗ Read failed: " + r.text.slice(0,200), "err");
+  }
+}
+
+async function deleteTest() {
+  var el = "delete-log";
+  document.getElementById(el).textContent = "";
+  log(el, "Deleting test record...", "info");
+
+  var r = await req("DELETE", "/rest/v1/inspections?id=eq." + TEST_ID, null, "return=minimal");
+
+  if (r.ok || r.status === 200 || r.status === 204) {
+    log(el, "✓ Test record deleted", "ok");
+  } else {
+    log(el, "✗ Delete failed: " + r.text.slice(0,100), "err");
+  }
+}
+</script>
+</body>
+</html>
