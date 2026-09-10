@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKCPS Live Save Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,sans-serif;background:#f5f8fc;padding:16px;color:#1a202c;}
+.card{background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin-bottom:12px;}
+h1{font-size:17px;font-weight:800;color:#1a2f4e;margin-bottom:4px;}
+.sub{font-size:13px;color:#64748b;margin-bottom:14px;}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;margin-bottom:8px;}
+.green{background:#276749;color:#fff;}
+.navy{background:#1a2f4e;color:#fff;}
+.log{background:#1a202c;color:#68d391;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;min-height:60px;max-height:300px;overflow-y:auto;white-space:pre-wrap;margin-top:8px;}
+.ok{color:#68d391;} .err{color:#fc8181;} .info{color:#90cdf4;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>OKCPS Live Save Setup</h1>
+  <p class="sub">Creates the live_answers table for real-time inspection saving.</p>
+</div>
+<div class="card">
+  <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Go to your Supabase SQL Editor and run this SQL:</p>
+  <div class="log" id="sql-display">-- Run this in Supabase SQL Editor
+-- supabase.com/dashboard/project/dkmmrdukdejvhuwptaug
+
+CREATE TABLE IF NOT EXISTS live_answers (
+  session_id    TEXT NOT NULL,
+  item_key      TEXT NOT NULL,
+  building      TEXT,
+  insp_date     TEXT,
+  inspector     TEXT,
+  status        TEXT,
+  note          TEXT,
+  ca_required   BOOLEAN DEFAULT FALSE,
+  ca_due        TEXT,
+  photos_json   TEXT,
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (session_id, item_key)
+);
+
+CREATE TABLE IF NOT EXISTS live_meta (
+  session_id    TEXT PRIMARY KEY,
+  building      TEXT,
+  insp_date     TEXT,
+  inspector     TEXT,
+  contact       TEXT,
+  insp_type     TEXT,
+  weather       TEXT,
+  notes         TEXT,
+  cond_json     TEXT,
+  nums_json     TEXT,
+  dates_json    TEXT,
+  hazards_json  TEXT,
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE live_answers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE live_meta    DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON live_answers TO anon, authenticated;
+GRANT ALL ON live_meta    TO anon, authenticated;</div>
+  <button class="btn navy" onclick="copySQL()" style="margin-top:8px;">📋 Copy SQL</button>
+</div>
+<div class="card">
+  <p style="font-size:13px;color:#64748b;margin-bottom:12px;">After running the SQL tap to verify:</p>
+  <button class="btn green" onclick="verify()">✅ Verify Tables Created</button>
+  <div class="log" id="verify-log">Tap verify after running SQL…</div>
+</div>
+<script>
+const SB_URL = "https://dkmmrdukdejvhuwptaug.supabase.co";
+const SB_KEY = "sb_publishable_nHVinO6HJ4NWGslANndcHg_M0gopX3u";
+
+function copySQL(){
+  var txt = document.getElementById("sql-display").textContent;
+  navigator.clipboard.writeText(txt).then(function(){
+    alert("SQL copied — paste it in Supabase SQL Editor and tap Run");
+  }).catch(function(){
+    alert("Select all text in the box above and copy it manually");
+  });
+}
+
+async function verify(){
+  var log = document.getElementById("verify-log");
+  log.innerHTML = "";
+  var tables = ["live_answers","live_meta"];
+  var allOk = true;
+  for(var t of tables){
+    var r = await fetch(SB_URL+"/rest/v1/"+t+"?limit=1",{
+      headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}
+    });
+    var ok = r.status === 200;
+    log.innerHTML += '\n<span class="'+(ok?"ok":"err")+'">'+(ok?"✓":"✗")+" "+t+" — "+(ok?"Ready":"Not found (run the SQL first)")+'</span>';
+    if(!ok) allOk = false;
+  }
+  if(allOk){
+    log.innerHTML += '\n\n<span class="ok">✓ All tables ready — upload the new form to GitHub!</span>';
+  }
+}
+</script>
+</body>
+</html>
