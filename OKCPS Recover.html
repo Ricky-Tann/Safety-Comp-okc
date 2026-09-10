@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKCPS Data Recovery</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,sans-serif;background:#f5f8fc;padding:16px;color:#1a202c;}
+.card{background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin-bottom:12px;}
+h1{font-size:17px;font-weight:800;color:#1a2f4e;margin-bottom:4px;}
+.sub{font-size:13px;color:#64748b;margin-bottom:14px;}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;margin-bottom:8px;}
+.green{background:#276749;color:#fff;}
+.navy{background:#1a2f4e;color:#fff;}
+.log{background:#1a202c;color:#68d391;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;min-height:80px;max-height:500px;overflow-y:auto;white-space:pre-wrap;margin-top:8px;}
+.ok{color:#68d391;} .err{color:#fc8181;} .info{color:#90cdf4;} .warn{color:#fbbf24;}
+.session-card{background:#fff;border:1px solid #cbd5e1;border-left:4px solid #276749;border-radius:10px;padding:12px;margin-bottom:8px;}
+.restore-btn{width:100%;padding:10px;border-radius:8px;border:none;background:#276749;color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>OKCPS Inspection Recovery</h1>
+  <p class="sub">Scans ALL data in Supabase and shows every session found.</p>
+</div>
+
+<div class="card">
+  <button class="btn navy" onclick="scanAll()">🔍 Scan ALL Sessions</button>
+  <div class="log" id="scan-log">Tap above to scan…</div>
+</div>
+
+<div id="sessions-list"></div>
+<div class="card" id="restore-card" style="display:none">
+  <div class="log" id="restore-log"></div>
+</div>
+
+<script>
+const SB_URL = "https://dkmmrdukdejvhuwptaug.supabase.co";
+const SB_KEY = "sb_publishable_nHVinO6HJ4NWGslANndcHg_M0gopX3u";
+
+function addLog(elId, msg, cls) {
+  var el = document.getElementById(elId);
+  el.innerHTML += '\n<span class="'+(cls||"info")+'">'+msg+'</span>';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function scanAll() {
+  document.getElementById("scan-log").innerHTML = "";
+  document.getElementById("sessions-list").innerHTML = "";
+  addLog("scan-log","Fetching ALL rows from live_answers...","info");
+
+  try {
+    // Fetch everything - no filter
+    var r = await fetch(
+      SB_URL+"/rest/v1/live_answers?select=*&order=updated_at.desc&limit=1000",
+      {headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}}
+    );
+    addLog("scan-log","Response status: "+r.status, r.ok?"ok":"err");
+    
+    if (!r.ok) {
+      var txt = await r.text();
+      addLog("scan-log","Error: "+txt,"err");
+      return;
+    }
+
+    var rows = await r.json();
+    addLog("scan-log","Total rows found: "+rows.length,"ok");
+
+    if (!rows.length) {
+      addLog("scan-log","No data in live_answers table","warn");
+      addLog("scan-log","Check live_meta table next...","info");
+      
+      var r2 = await fetch(
+        SB_URL+"/rest/v1/live_meta?select=*&order=updated_at.desc",
+        {headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}}
+      );
+      var meta = await r2.json();
+      addLog("scan-log","live_meta rows: "+(meta?meta.length:0),"ok");
+      if(meta && meta.length) {
+        meta.forEach(function(m){
+          addLog("scan-log","  Session: "+m.session_id,"info");
+          addLog("scan-log","  Building: "+(m.building||"none")+" | Date: "+(m.insp_date||"none"),"info");
+        });
+      }
+      return;
+    }
+
+    // Show ALL unique sessions
+    var sessions = {};
+    rows.forEach(function(row) {
+      var sid = row.session_id;
+      if (!sessions[sid]) {
+        sessions[sid] = {
+          sid:sid, building:row.building||"Unknown",
+          date:row.insp_date||"", inspector:row.inspector||"",
+          updated:row.updated_at, count:0, passed:0, failed:0, rows:[]
+        };
+      }
+      sessions[sid].count++;
+      sessions[sid].rows.push(row);
+      if(row.status==="pass") sessions[sid].passed++;
+      if(row.status==="fail") sessions[sid].failed++;
+      if(row.updated_at > sessions[sid].updated) sessions[sid].updated=row.updated_at;
+    });
+
+    var list = Object.values(sessions).sort(function(a,b){
+      return new Date(b.updated)-new Date(a.updated);
+    });
+
+    addLog("scan-log","Found "+list.length+" unique session(s)","ok");
+    list.forEach(function(s){
+      addLog("scan-log","→ "+s.building+" | "+s.date+" | "+s.count+" items | "+s.passed+"P/"+s.failed+"F","ok");
+      addLog("scan-log","  ID: "+s.sid,"info");
+    });
+
+    // Render restore cards
+    var html = "";
+    list.forEach(function(s) {
+      var updDate = new Date(s.updated).toLocaleString();
+      html += '<div class="card session-card">'
+        +'<div style="font-size:15px;font-weight:800;color:#1a2f4e;">'+(s.building||"Unknown")+'</div>'
+        +'<div style="font-size:12px;color:#64748b;margin-top:3px;">Date: '+(s.date||"—")+' · Inspector: '+(s.inspector||"—")+'</div>'
+        +'<div style="font-size:12px;color:#64748b;">Last saved: '+updDate+'</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#276749;margin-top:5px;">'+s.count+' items · '+s.passed+' Pass · '+s.failed+' Fail</div>'
+        +'<div style="font-size:10px;color:#94a3b8;margin-top:3px;font-family:monospace;">'+s.sid+'</div>'
+        +'<button class="restore-btn" onclick="restore(\''+s.sid.replace(/\\/g,"\\\\").replace(/\'/g,"\\'")+'\')">📥 Restore This Inspection to Form</button>'
+        +'</div>';
+    });
+    document.getElementById("sessions-list").innerHTML = html;
+
+  } catch(e) {
+    addLog("scan-log","Error: "+e.message,"err");
+  }
+}
+
+async function restore(sid) {
+  var card = document.getElementById("restore-card");
+  var log  = document.getElementById("restore-log");
+  card.style.display="block";
+  log.innerHTML="";
+  addLog("restore-log","Restoring session: "+sid,"info");
+
+  try {
+    // Fetch answers
+    var ar = await fetch(
+      SB_URL+"/rest/v1/live_answers?session_id=eq."+encodeURIComponent(sid)+"&select=*",
+      {headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}}
+    );
+    var answers = await ar.json();
+    addLog("restore-log","✓ "+answers.length+" answers found","ok");
+
+    // Fetch meta
+    var mr = await fetch(
+      SB_URL+"/rest/v1/live_meta?session_id=eq."+encodeURIComponent(sid)+"&select=*",
+      {headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY}}
+    );
+    var metaRows = await mr.json();
+
+    // Build state
+    var S = {
+      meta:{building:"",date:"",inspector:"",contact:"",type:"",weather:"",notes:""},
+      cond:{hasFDC:null,hasElevator:null},
+      nums:{aedCount:""},dates:{wh_lastInspDate:""},
+      signoff:{inspectorSig:"",principalSig:""},
+      answers:{},hazards:[],
+    };
+
+    if (metaRows && metaRows.length) {
+      var m = metaRows[0];
+      S.meta.building=m.building||""; S.meta.date=m.insp_date||"";
+      S.meta.inspector=m.inspector||""; S.meta.contact=m.contact||"";
+      S.meta.type=m.insp_type||""; S.meta.weather=m.weather||"";
+      S.meta.notes=m.notes||"";
+      try{S.cond=JSON.parse(m.cond_json||"{}");}catch(e){}
+      try{S.nums=JSON.parse(m.nums_json||"{}");}catch(e){}
+      try{S.dates=JSON.parse(m.dates_json||"{}");}catch(e){}
+      try{S.hazards=JSON.parse(m.hazards_json||"[]");}catch(e){}
+      addLog("restore-log","✓ Meta: "+S.meta.building+" | "+S.meta.date,"ok");
+    } else {
+      // No meta - get building/date from first answer row
+      if (answers.length) {
+        S.meta.building  = answers[0].building  || "";
+        S.meta.date      = answers[0].insp_date || "";
+        S.meta.inspector = answers[0].inspector || "";
+      }
+      addLog("restore-log","✓ Meta from answers: "+S.meta.building+" | "+S.meta.date,"ok");
+    }
+
+    // Restore all answers
+    answers.forEach(function(row){
+      var photos=[];
+      try{photos=JSON.parse(row.photos_json||"[]");}catch(e){}
+      S.answers[row.item_key]={
+        status:row.status||null, note:row.note||"",
+        caRequired:row.ca_required||false, caDue:row.ca_due||"",
+        photos:photos,
+      };
+    });
+
+    var answeredCount = Object.keys(S.answers).filter(function(k){
+      return S.answers[k]&&S.answers[k].status;
+    }).length;
+
+    // Save to localStorage
+    localStorage.setItem("okcps_v5", JSON.stringify(S));
+    localStorage.setItem("okcps_session_id", sid);
+
+    addLog("restore-log","✓ "+answeredCount+" answered items saved","ok");
+    addLog("restore-log","","");
+    addLog("restore-log","✅ DONE — now open your form:","ok");
+    addLog("restore-log","ricky-tann.github.io/Safety-Comp-okc","ok");
+    addLog("restore-log","","");
+    addLog("restore-log","All your answers will be there.","ok");
+
+  } catch(e) {
+    addLog("restore-log","Error: "+e.message,"err");
+  }
+}
+</script>
+</body>
+</html>
